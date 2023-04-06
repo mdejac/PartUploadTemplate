@@ -1,0 +1,1803 @@
+Private Sub Main(ByVal buttonClick As Integer)
+    
+    Dim response As Variant
+    Dim pt As Workbook
+    
+    Set pt = Workbooks("PartUploadTemplate")
+    
+    response = MsgBox("Press Yes to continue.", vbYesNo)
+    
+    If Not response = vbYes Then
+        Exit Sub
+    End If
+    
+    Select Case buttonClick
+    Case 1
+        ImportData
+        CreatePartsList "FDAPartsList"
+        CreatePartsList "BasicPartsList"
+        
+        Dim bl As Workbook
+        Set bl = Workbooks.Add
+        pt.Activate
+        
+        For Each sheet In pt.Worksheets
+            Select Case sheet.Name
+            Case "FDAPartsList", "ALPartsList", "AQPartsList", "BasicPartsList", "EP7PartsList", "EP5PartsList", "EP3PartsList", pt.Sheets("ControlWindow").Range("T4").Value2
+                sheet.Columns.AutoFit
+                sheet.Move Before:=bl.Sheets(1)
+                pt.Activate
+            End Select
+        Next sheet
+        
+        bl.Activate
+        Application.DisplayAlerts = False
+        bl.Sheets("Sheet1").Delete
+        Application.DisplayAlerts = True
+        For Each sheet In bl.Worksheets
+            If sheet.Name = "Sheet1 (2)" Then
+                bl.Sheets("Sheet1 (2)").Name = "Sheet1"
+            End If
+        Next sheet
+        pt.Activate
+    Case 2
+        CompletePartiesTemplate
+        CreateUploadTemplates
+        
+    End Select
+
+    ClearControlWindow
+    Application.ScreenUpdating = True
+
+End Sub
+
+Private Sub CreateUploadTemplates()
+
+    Dim accountNumber As Variant
+    Dim pt As Workbook
+    Dim templateMade As Boolean
+    
+    templateMade = False
+    
+    Set pt = Workbooks("PartUploadTemplate")
+
+    accountNumber = InputBox("Enter account name : ")
+    
+    If (StrPtr(accountNumber) = 0 Or accountNumber = vbNullString) Then
+        Exit Sub
+    End If
+    
+    For Each sheet In pt.Worksheets
+        Select Case sheet.Name
+        Case "AQPartsList"
+            WriteAQUploadTemplate accountNumber
+        Case "EP3PartsList"
+            WriteEP3UploadTemplate accountNumber
+        Case "EP5PartsList"
+            WriteEP5UploadTemplate accountNumber
+        Case "EP7PartsList"
+            WriteEP7UploadTemplate accountNumber
+        Case "BasicPartsList"
+            WriteBasicPartsUploadTemplate accountNumber
+        Case "FDAPartsList"
+            WriteFDAUploadTemplate accountNumber
+        Case "ALPartsList"
+            WriteALUploadTemplate accountNumber
+        End Select
+    Next sheet
+    
+    For Each sheet In pt.Worksheets
+        Select Case sheet.Name
+        Case "ALUploadTemplate", "AQUploadTemplate", "BasicPartsUploadTemplate", "EP3UploadTemplate", "EP5UploadTemplate", "EP7UploadTemplate", "FDAUploadTemplate"
+            FinalizeUploadTemplate sheet.Name
+            templateMade = True
+        End Select
+    Next sheet
+    
+    If templateMade Then
+        
+        Dim pl As Workbook
+        Set pl = Workbooks.Add
+        pt.Activate
+        
+        For Each sheet In pt.Worksheets
+            Select Case sheet.Name
+            Case "ALPartsList", "AQPartsList", "BasicPartsList", "EP3PartsList", "EP5PartsList", "EP7PartsList", "FDAPartsList"
+                sheet.Move Before:=pl.Sheets(1)
+                pt.Activate
+            End Select
+        Next sheet
+    End If
+End Sub
+
+Private Sub WriteALUploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "ALUploadTemplate"
+    endOfTemplate = FindLastRow("ALUploadTemplate") + 1
+    
+    LoadTempArray "ALPartsList", tempArray()
+    endOfList = FindLastRow("ALPartsList")
+    
+    For i = 1 To endOfList - 3
+    
+        With Worksheets("ALUploadTemplate")
+        
+            UploadTemplateStart "ALUploadTemplate", accountNumber, tempArray(), i
+            .Range("K" & endOfTemplate) = GetALCode(tempArray(i, 6))
+            .Range("L" & endOfTemplate) = 1
+            .Range("M" & endOfTemplate) = tempArray(i, 3)
+            .Range("N" & endOfTemplate) = "APH"
+            .Range("O" & endOfTemplate) = "APL"
+            .Range("P" & endOfTemplate) = tempArray(i, 9)
+            .Range("Q" & endOfTemplate) = tempArray(i, 10)
+            .Range("R" & endOfTemplate) = "APH"
+            .Range("S" & endOfTemplate) = .Range("K" & endOfTemplate).Value2
+            .Range("T" & endOfTemplate) = 1
+            .Range("U" & endOfTemplate) = tempArray(i, 3)
+            .Range("V" & endOfTemplate) = 1
+            .Range("W" & endOfTemplate) = tempArray(i, 11)
+            .Range("X" & endOfTemplate) = tempArray(i, 12)
+            .Range("Y" & endOfTemplate) = tempArray(i, 13)
+            .Range("Z" & endOfTemplate) = tempArray(i, 14)
+            .Range("AA" & endOfTemplate) = tempArray(i, 15)
+            .Range("AB" & endOfTemplate) = tempArray(i, 16)
+            .Range("AC" & endOfTemplate) = tempArray(i, 17)
+            PlusOne 0, endOfTemplate
+    
+        End With
+    Next i
+
+End Sub
+
+
+Private Sub WriteEP7UploadTemplate(ByVal accountNumber As String)
+
+    Dim disclaimTSCA As String
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "EP7UploadTemplate"
+    endOfTemplate = FindLastRow("EP7UploadTemplate") + 1
+    
+    LoadTempArray "EP7PartsList", tempArray()
+    endOfList = FindLastRow("EP7PartsList")
+    
+    For i = 1 To endOfList - 3
+    
+        With Worksheets("EP7UploadTemplate")
+        
+            UploadTemplateStart "EP7UploadTemplate", accountNumber, tempArray(), i
+            .Range("K" & endOfTemplate) = "EP7"
+            .Range("L" & endOfTemplate) = 1                                             'Set Pg Sequence Number
+            .Range("M" & endOfTemplate) = tempArray(i, 3)                               'Set Commercial Description
+            .Range("N" & endOfTemplate) = "EPA"                                         'Set Pg Agency Code
+            .Range("O" & endOfTemplate) = "TS1"                                         'Set Pg Program Code
+        
+            If tempArray(i, 9) = "Y" Then
+                .Range("P" & endOfTemplate) = "Y"                                       'If disclaim Y Set Title VI Y
+                .Range("R" & endOfTemplate) = tempArray(i, 10)                          'Set dislcaimer type
+                disclaimTSCA = "Y"
+            Else
+                disclaimTSCA = "N"
+            End If
+        
+        
+            .Range("Q" & endOfTemplate) = disclaimTSCA                               'Set is dislcaimer
+        
+            If disclaimTSCA = "N" Then
+        
+                .Range("S" & endOfTemplate) = 1                                                      'If disclaim then blank else 1
+                .Range("T" & endOfTemplate) = "EP7"                                                  'If dislcaim n then EP7
+                .Range("U" & endOfTemplate) = tempArray(i, 8)                                'If disclaim n then Set Declaration Cd
+                .Range("V" & endOfTemplate) = 1                                                      'If disclaim n then 1
+                .Range("W" & endOfTemplate) = "CI"                                                   'if disclaim n then CI
+                .Range("X" & endOfTemplate) = Worksheets("ControlWindow").Range("Q26").Value2        'Set Name
+                .Range("Y" & endOfTemplate) = Worksheets("ControlWindow").Range("S26").Value2        'Set Phone
+                .Range("Z" & endOfTemplate) = Worksheets("ControlWindow").Range("U26").Value2        'Set Email
+        
+            End If
+            PlusOne 0, endOfTemplate
+
+        End With
+    Next i
+End Sub
+
+Private Sub WriteEP3UploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "EP3UploadTemplate"
+    endOfTemplate = FindLastRow("EP3UploadTemplate") + 1
+    
+    LoadTempArray "EP3PartsList", tempArray()
+    endOfList = FindLastRow("EP3PartsList")
+    
+    For i = 1 To endOfList - 3
+    
+        With Worksheets("EP3UploadTemplate")
+        
+            UploadTemplateStart "EP3UploadTemplate", accountNumber, tempArray(), i
+            .Range("K" & endOfTemplate) = "EP3"
+            .Range("L" & endOfTemplate) = 1
+            .Range("M" & endOfTemplate) = tempArray(i, 3)
+            .Range("N" & endOfTemplate) = "EPA"
+            .Range("O" & endOfTemplate) = "VNE"
+            .Range("P" & endOfTemplate) = tempArray(i, 8)
+            .Range("Q" & endOfTemplate) = tempArray(i, 9)
+            PlusOne 0, endOfTemplate
+    
+        End With
+    Next i
+End Sub
+
+Private Sub WriteEP5UploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "EP5UploadTemplate"
+    endOfTemplate = FindLastRow("EP5UploadTemplate") + 1
+    
+    LoadTempArray "EP5PartsList", tempArray()
+    endOfList = FindLastRow("EP5PartsList")
+    
+    For i = 1 To endOfList - 3
+    
+        With Worksheets("EP5UploadTemplate")
+        
+            UploadTemplateStart "EP5UploadTemplate", accountNumber, tempArray(), i
+            .Range("K" & endOfTemplate) = "EP5"
+            .Range("L" & endOfTemplate) = 1
+            .Range("M" & endOfTemplate) = tempArray(i, 3)
+            .Range("N" & endOfTemplate) = "EPA"
+            .Range("O" & endOfTemplate) = "PST"
+            .Range("P" & endOfTemplate) = tempArray(i, 8)
+            .Range("Q" & endOfTemplate) = tempArray(i, 9)
+            PlusOne 0, endOfTemplate
+    
+        End With
+    Next i
+End Sub
+
+Private Sub WriteAQUploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "AQUploadTemplate"
+    endOfTemplate = FindLastRow("AQUploadTemplate") + 1
+    
+    LoadTempArray "AQPartsList", tempArray()
+    endOfList = FindLastRow("AQPartsList")
+    
+    For i = 1 To endOfList - 3
+        
+        With Worksheets("AQUploadTemplate")
+        
+            UploadTemplateStart "AQUploadTemplate", accountNumber, tempArray(), i
+            .Range("K" & endOfTemplate) = tempArray(i, 8)
+            .Range("L" & endOfTemplate) = 1
+            .Range("M" & endOfTemplate) = tempArray(i, 3)
+            .Range("N" & endOfTemplate) = "APH"
+            .Range("O" & endOfTemplate) = tempArray(i, 9)
+            .Range("P" & endOfTemplate) = tempArray(i, 10)
+            .Range("Q" & endOfTemplate) = tempArray(i, 11)
+            If tempArray(i, 10) = "N" Then
+            .Range("R" & endOfTemplate) = tempArray(i, 12)
+            .Range("S" & endOfTemplate) = .Range("K" & endOfTemplate).Value2
+            .Range("T" & endOfTemplate) = 1
+            .Range("U" & endOfTemplate) = tempArray(i, 13)
+            .Range("V" & endOfTemplate) = tempArray(i, 14)
+            .Range("W" & endOfTemplate) = tempArray(i, 15)
+            .Range("X" & endOfTemplate) = tempArray(i, 16)
+            .Range("Y" & endOfTemplate) = tempArray(i, 17)
+            .Range("Z" & endOfTemplate) = tempArray(i, 18)
+            .Range("AA" & endOfTemplate) = tempArray(i, 19)
+            .Range("AB" & endOfTemplate) = tempArray(i, 20)
+            .Range("AC" & endOfTemplate) = tempArray(i, 21)
+            .Range("AD" & endOfTemplate) = tempArray(i, 22)
+            .Range("AE" & endOfTemplate) = tempArray(i, 23)
+            .Range("AF" & endOfTemplate) = 1
+            .Range("AG" & endOfTemplate) = 1
+            .Range("AH" & endOfTemplate) = tempArray(i, 24)
+            .Range("AI" & endOfTemplate) = tempArray(i, 25)
+            .Range("AJ" & endOfTemplate) = tempArray(i, 26)
+            .Range("AK" & endOfTemplate) = tempArray(i, 27)
+            .Range("AL" & endOfTemplate) = tempArray(i, 28)
+            .Range("AM" & endOfTemplate) = 1
+            .Range("AN" & endOfTemplate) = tempArray(i, 29)
+            .Range("AO" & endOfTemplate) = tempArray(i, 30)
+            .Range("AP" & endOfTemplate) = tempArray(i, 31)
+            .Range("AQ" & endOfTemplate) = tempArray(i, 32)
+            .Range("AR" & endOfTemplate) = tempArray(i, 33)
+            .Range("AS" & endOfTemplate) = tempArray(i, 34)
+            If Not Worksheets("ControlWindow").Range("C44") = "" Then
+                If Not Worksheets("ControlWindow").Range("M26") = "" Then
+                    .Range("AT" & endOfTemplate) = 1
+                    .Range("AU" & endOfTemplate) = tempArray(i, 35)
+                    .Range("AV" & endOfTemplate) = tempArray(i, 36)
+                    .Range("AW" & endOfTemplate) = tempArray(i, 37)
+                    .Range("AX" & endOfTemplate) = tempArray(i, 38)
+                    .Range("AY" & endOfTemplate) = tempArray(i, 39)
+                    .Range("AZ" & endOfTemplate) = tempArray(i, 40)
+                    .Range("BA" & endOfTemplate) = tempArray(i, 41)
+                End If
+                .Range("BB" & endOfTemplate) = 1
+                If Worksheets("ControlWindow").Range("M26") = "" Then
+                    .Range("BC" & endOfTemplate) = "DFI"
+                Else
+                    .Range("BC" & endOfTemplate) = "LAP"
+                    .Range("BK" & endOfTemplate) = 333
+                    .Range("BL" & endOfTemplate) = Worksheets("ControlWindow").Range("M26").Value2
+                End If
+                .Range("BD" & endOfTemplate) = Worksheets("ControlWindow").Range("C44").Value2
+                .Range("BE" & endOfTemplate) = Worksheets("ControlWindow").Range("F44").Value2
+                .Range("BF" & endOfTemplate) = Worksheets("ControlWindow").Range("I44").Value2
+                .Range("BG" & endOfTemplate) = Worksheets("ControlWindow").Range("L44").Value2
+                .Range("BH" & endOfTemplate) = Worksheets("ControlWindow").Range("N44").Value2
+                .Range("BI" & endOfTemplate) = Worksheets("ControlWindow").Range("O44").Value2
+                .Range("BJ" & endOfTemplate) = Worksheets("ControlWindow").Range("P44").Value2
+            End If
+            .Range("BP" & endOfTemplate) = 1
+            .Range("BQ" & endOfTemplate) = 198
+            .Range("BR" & endOfTemplate) = "CA"
+            .Range("BS" & endOfTemplate) = ""
+            End If
+            
+            
+            PlusOne 0, endOfTemplate
+    
+        End With
+    Next i
+End Sub
+
+Private Sub WriteFDAUploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "FDAUploadTemplate"
+    endOfTemplate = FindLastRow("FDAUploadTemplate") + 1
+    
+    LoadTempArray "FDAPartsList", tempArray()
+    endOfList = FindLastRow("FDAPartsList")
+    
+    For i = 1 To endOfList - 3
+        
+        With Worksheets("FDAUploadTemplate")
+        
+            pgaCode = GetFDACode(tempArray(i, 6), True)
+            WriteFDATemplate accountNumber, pgaCode, tempArray(), i, False
+    
+        End With
+    Next i
+End Sub
+
+Private Sub WriteFDATemplate(ByVal accountNumber As String, ByVal tempPgCode As String, ByRef tempArray() As Variant, ByVal location As Long, ByVal isDisclaim As Boolean)
+
+    Dim setDisclaim As String
+    Dim setDisclaimCode As String
+    Dim aocPositionNumber As Integer
+    Dim endOfTemplate As Long
+    
+    InitializeTemplate "FDAUploadTemplate"
+    endOfTemplate = FindLastRow("FDAUploadTemplate") + 1
+    
+    If isDisclaim Then
+        setDisclaim = "Y"
+        setDisclaimCode = "A"
+    Else
+        setDisclaim = "N"
+        setDisclaimCode = ""
+    End If
+    
+    With Worksheets("FDAUploadTemplate")
+        UploadTemplateStart "FDAUploadTemplate", accountNumber, tempArray(), location
+        .Range("K" & endOfTemplate) = tempPgCode                                 'Set Pg Code
+        .Range("L" & endOfTemplate) = 1                                          'Set Pg Sequence Number
+        .Range("M" & endOfTemplate) = tempArray(location, 3)          'Set PGA Commercial Description
+        .Range("N" & endOfTemplate) = "FDA"                                      'Set Pg Agency Code
+        .Range("Q" & endOfTemplate) = setDisclaim                                'Set Is Disclaimer
+        .Range("R" & endOfTemplate) = setDisclaimCode                            'Set Disclaim Code
+        If Not isDisclaim Then
+            .Range("O" & endOfTemplate) = tempArray(location, 8)           'Set Pg Program Code
+            .Range("P" & endOfTemplate) = tempArray(location, 9)           'Set Pg Agency Processing Code
+            .Range("S" & endOfTemplate) = tempPgCode                             'Set FDA PG CD
+            .Range("T" & endOfTemplate) = 1                                  'Set FDA Pg Seq Number
+            .Range("U" & endOfTemplate) = tempArray(location, 10)         'Set FDA Product Code
+            .Range("V" & endOfTemplate) = tempArray(location, 3)          'Set FDA product description
+            .Range("W" & endOfTemplate) = tempArray(location, 11)         'Set Include Prior Notice
+            .Range("X" & endOfTemplate) = tempArray(location, 12)         'Set Intended Use Base
+            .Range("Y" & endOfTemplate) = tempArray(location, 13)         'Set Intended Use Sub Base
+            .Range("Z" & endOfTemplate) = tempArray(location, 14)         'Set FDA Qty 1
+            .Range("AA" & endOfTemplate) = tempArray(location, 15)        'Set FDA Qty 1 UOM
+            .Range("AB" & endOfTemplate) = tempArray(location, 16)        'Set FDA Qty 2
+            .Range("AC" & endOfTemplate) = tempArray(location, 17)        'Set FDA Qty 2 UOM
+            .Range("AD" & endOfTemplate) = tempArray(location, 18)        'Set FDA Qty 3
+            .Range("AE" & endOfTemplate) = tempArray(location, 19)        'Set FDA Qty 3 UOM
+            .Range("AF" & endOfTemplate) = tempArray(location, 20)        'Set FDA Qty 4
+            .Range("AG" & endOfTemplate) = tempArray(location, 21)        'Set FDA Qty 4 UOM
+            .Range("AH" & endOfTemplate) = tempArray(location, 22)        'Set FDA diameter/width
+            .Range("AI" & endOfTemplate) = tempArray(location, 23)        'Set FDA Height
+            .Range("AJ" & endOfTemplate) = tempArray(location, 24)        'Set FDA Length
+            .Range("AK" & endOfTemplate) = 1                                 'Set FDA country seq number
+            .Range("AL" & endOfTemplate) = 39                                'Set FDA country type
+            .Range("AM" & endOfTemplate) = tempArray(location, 31)        'Set FDA country
+            .Range("AN" & endOfTemplate) = 1                                 'Set Party Seq Number
+            .Range("AO" & endOfTemplate) = tempArray(location, 25)        'Set Party Role
+            .Range("AP" & endOfTemplate) = tempArray(location, 26)        'Set Party Name
+            .Range("AQ" & endOfTemplate) = tempArray(location, 27)        'Set Party Address 1
+            .Range("AR" & endOfTemplate) = tempArray(location, 28)        'Set Party Address 2
+            .Range("AS" & endOfTemplate) = tempArray(location, 29)        'Set Party City
+            .Range("AT" & endOfTemplate) = tempArray(location, 30)        'Set Party State/Provence
+            .Range("AU" & endOfTemplate) = tempArray(location, 31)        'Set Party Country
+            .Range("AV" & endOfTemplate) = tempArray(location, 32)        'Set Party Postal Code
+            .Range("BD" & endOfTemplate) = tempArray(location, 33)        'Set AOC 1
+            .Range("BF" & endOfTemplate) = tempArray(location, 34)        'Set AOC 2 Code
+            .Range("BG" & endOfTemplate) = tempArray(location, 35)        'Set AOC 2
+            .Range("BI" & endOfTemplate) = tempArray(location, 36)        'Set AOC 3 Code
+            .Range("BJ" & endOfTemplate) = tempArray(location, 37)        'Set AOC 3
+            .Range("BL" & endOfTemplate) = tempArray(location, 38)        'Set AOC 4 Code
+            .Range("BM" & endOfTemplate) = tempArray(location, 39)        'Set AOC 4
+        
+            If .Range("P" & endOfTemplate) = "PRO" Or .Range("P" & endOfTemplate) = "FEE" Then
+                .Range("BB" & endOfTemplate) = 1
+                If IsEmpty(.Range("BD" & endOfTemplate)) Then
+                    .Range("BC" & endOfTemplate) = "FME"
+                    .Range("BD" & endOfTemplate) = "K"
+                Else
+                    .Range("BC" & endOfTemplate) = "PFR"
+                End If
+            Else
+                If .Range("O" & endOfTemplate) = "DEV" Then
+                    .Range("BB" & endOfTemplate) = 1
+                    If .Range("AU" & endOfTemplate) = "US" Then
+                        .Range("BC" & endOfTemplate) = "DDM"
+                        .Range("X" & endOfTemplate) = 920
+                    Else
+                        .Range("BC" & endOfTemplate) = "DEV"
+                    End If
+                End If
+            End If
+        
+            aocPositionNumber = 2
+        
+            If Not IsEmpty(.Range("BF" & endOfTemplate)) Then
+                .Range("BE" & endOfTemplate) = aocPositionNumber
+                PlusOne aocPositionNumber, 0
+            End If
+        
+            If Not IsEmpty(.Range("BI" & endOfTemplate)) Then
+                .Range("BH" & endOfTemplate) = aocPositionNumber
+                PlusOne aocPositionNumber, 0
+            End If
+        
+            If Not IsEmpty(.Range("BL" & endOfTemplate)) Then
+                .Range("BK" & endOfTemplate) = aocPositionNumber
+                PlusOne aocPositionNumber, 0
+            End If
+            
+            If .Range("O" & endOfTemplate) = "DEV" Then
+                If Not IsEmpty(Worksheets("PartiesTemplate").Range("K2")) Then
+                    .Range("BN" & endOfTemplate) = aocPositionNumber
+                    .Range("BO" & endOfTemplate) = "DFE"
+                    .Range("BP" & endOfTemplate) = Worksheets("PartiesTemplate").Range("K5").Value2
+                End If
+            End If
+        
+            If .Range("BC" & endOfTemplate).Value2 = "DEV" Or .Range("BC" & endOfTemplate).Value2 = "DDM" Then
+                .Range("AW" & endOfTemplate) = 47
+                .Range("AX" & endOfTemplate) = tempArray(location, 33)
+            End If
+        
+        End If
+        
+        PlusOne 0, endOfTemplate
+        
+    End With
+
+End Sub
+
+Private Sub AutoInsertFDALines()
+'
+'Adds required FDA parties to MF parts template
+'
+
+    Dim rowCount As Long                                            'Last row of part number processed
+    Dim addPartyModifier As Integer                                 'Used to add DII party line
+    Dim rangePartyModifier As Integer                               'Modifies selection range of AK and AL cells
+    Dim moveAffirmationModifier As Integer                          'Modifies search range for additional AOC codes
+    
+    Dim cellCopyFDAPNS As Variant                                   'FDA PNS Party Container
+    Dim cellCopyFDA As Variant                                      'FDA Party Container
+    Dim cellCopyFDADEV As Variant                                   'FDA DEV Party Container
+    
+    
+    cellCopyFDAPNS = Worksheets("PartiesTemplate").Range("A4:N10").Value2                        'Store FDA PNS party data
+    cellCopyFDA = Worksheets("PartiesTemplate").Range("A4:N6").Value2                            'Store FDA party data
+    cellCopyFDADEV = Worksheets("PartiesTemplate").Range("A4:N7").Value2                         'Store FDA DEV party data
+    
+    rowCount = FindLastRow("FDAUploadTemplate")                   'Find last part in list
+        
+    Do While rowCount >= 4                                          'Repeat until first part is processed, line 4
+        With Worksheets("FDAUploadTemplate")
+            If .Range("Q" & rowCount) = "N" Then
+            
+                rangePartyModifier = rowCount + 3                           'Modifies range to target correct AL and AK cells
+        
+                If .Range("W" & rowCount).Value2 = "Y" Then                   'PNS party requirement check
+                
+                    AutoInsertFDA cellCopyFDAPNS, rowCount, 7                           'Send PNS required parties, current working row number, number of rows to be created
+            
+                    .Range("AN" & rowCount + 7).Value2 = 8                                'Set FDA MF Party code to 8
+                    .Range("AO" & rangePartyModifier).Value2 = "DFP"                      'Correct DFP/DII FDA Party Role from template
+            
+                    moveAffirmationModifier = 7                                         'Passed to MoveAffirmationCodes to adjust search field for additional AOC codes
+        
+                Else                                                                    'Not subject to PNS
+            
+                    If .Range("O" & rowCount).Value2 = "DEV" Then                         'DEV requires additional DII party
+                
+                        AutoInsertFDA cellCopyFDADEV, rowCount, 4                       'Send DEV required parties, current working row, number of rows to be created
+                
+                        .Range("AO" & rangePartyModifier).Value2 = "DII"                  'Correct DFP/DII FDA Party Role from template
+                
+                        addPartyModifier = 1                                            'Compensate for additional line from DII party
+                        moveAffirmationModifier = 4                                     'Passed to MoveAffirmationCodes to adjust search field for additional AOC codes
+            
+                    Else                                                                'DII not required
+                
+                        AutoInsertFDA cellCopyFDA, rowCount, 3                          'Send FDA required parties, current working row, and number of rows to be created
+                
+                        addPartyModifier = 0                                            'No additional party added
+                        moveAffirmationModifier = 3                                     'Passed to MoveAffirmationCodes to adjust search field for additional AOC codes
+            
+                    End If
+            
+                    .Range("AO" & rowCount).Value2 = "DP"                                                         'Set UC party to DP
+                    .Range("AN" & rangePartyModifier + addPartyModifier).Value2 = 4 + addPartyModifier            'Set MF Party code to 4 or 5 if DII was added
+            
+                End If
+
+                MoveAffirmationCodes rowCount, moveAffirmationModifier                                          'Check for and move additional affirmation codes
+
+            End If
+        End With
+        MinusOne 0, rowCount                                                                               'Reduce rowCount by one to process next part or end loop
+    Loop
+    
+    AutoFillRequiredFields "FDAUploadTemplate"
+
+End Sub
+
+Private Sub AutoInsertFDA(ByVal cellData As Variant, ByVal tempRowCount As Long, ByVal loopControl As Integer)
+'
+'Adds blanks rows and fills with cellData
+'Accepts range of data stored in a Variant, row to be modified, number of lines to be modified
+'
+    Worksheets("FDAUploadTemplate").Activate
+    With Worksheets("FDAUploadTemplate")
+        For i = 1 To loopControl                                                                        'Add specified number of blank rows as per loopControl
+        
+            .Rows(tempRowCount & ":" & tempRowCount).Select                                             'Select current working row
+            Selection.Insert shift:=xlDown, CopyOrigin:=xlFormatFromRightOrBelow                        'Insert blank row shifting original rows down by one; copy original cell format
+    
+        Next i
+    
+            .Range("AN" & tempRowCount & ":" & "BA" & tempRowCount + loopControl - 1).Value2 = cellData        'Copy required cellData to newly created blank rows
+    
+    End With
+End Sub
+
+Private Sub MoveAffirmationCodes(ByVal tempRowCount As Long, ByVal tempAffirmationModifier As Integer)
+'
+'Finds and moves additional affirmation of compliance codes
+'
+    
+    Dim newRange As Long
+    
+    tempRowCount = tempRowCount + tempAffirmationModifier                   'Sets range for row with additional affirmation codes
+    
+    newRange = tempRowCount - 1
+    With Worksheets("FDAUploadTemplate")
+        
+        If Not IsEmpty(.Range("BE" & tempRowCount)) Then                                                                'Test for additional Affirmation Code 2
+    
+            .Range("BE" & tempRowCount & ":" & "BG" & tempRowCount).Cut Destination:=.Range("BB" & newRange)            'Cut range and paste into correct position
+            MinusOne 0, newRange
+    
+        End If
+        
+        If Not IsEmpty(.Range("BH" & tempRowCount)) Then                                                                'Test for additional Affirmation code 3
+        
+            .Range("BH" & tempRowCount & ":" & "BJ" & tempRowCount).Cut Destination:=.Range("BB" & newRange)            'Cut range and paste into correct position
+            MinusOne 0, newRange
+    
+        End If
+    
+        If Not IsEmpty(.Range("BL" & tempRowCount)) Then                                                                'Test for additional Affirmation code 4
+        
+            .Range("BK" & tempRowCount & ":" & "BM" & tempRowCount).Cut Destination:=.Range("BB" & newRange)            'Cut range and paste into correct position
+            MinusOne 0, newRange
+    
+        End If
+        
+        If Not IsEmpty(.Range("BN" & tempRowCount)) Then                                                                'Test for DFE Affirmation code
+        
+            .Range("BN" & tempRowCount & ":" & "BP" & tempRowCount).Cut Destination:=.Range("BB" & newRange)            'Cut range and paste into correct position
+    
+        End If
+    
+    End With
+End Sub
+
+Private Sub AutoFillRequiredFields(ByVal tempList As String)
+'
+' AutoFillRequiredFields - RUN AFTER AutoInstertFDALines!!!!
+' Copys variable fields from MF line to newly created FDA lines
+'
+
+'
+    Dim rowCount As Long                            'Row to be processed
+    Dim cellValue As String                         'Container to copy and move data
+    Dim noPNrequired As Boolean                     'Determines if part requires PNS
+    
+    rowCount = FindLastRow(tempList)
+    
+    Do While rowCount >= 4                                      'Repeat until last part is processed
+        With Worksheets(tempList)
+            
+            .Range("B" & rowCount).Value2 = Format(Date, "mm/dd/yyyy")          'Set part effective date
+            .Range("C" & rowCount).Value2 = "12/31/2099"                         'Set part expiration date
+            Select Case tempList
+            Case "FDAUploadTemplate"
+                AutoFillFDA rowCount
+            Case Else
+                MinusOne 0, rowCount
+            End Select
+     
+        End With
+     
+    Loop
+    
+End Sub
+
+Private Sub AutoFillFDA(ByRef rowCount As Long)
+
+    Dim loopCount As Integer
+    Dim copyCount As Long
+    Dim noPNrequired As Boolean
+    
+    With Worksheets("FDAUploadTemplate")
+     
+            If .Range("Q" & rowCount).Value2 = "N" Then
+            
+                If .Range("W" & rowCount).Value2 = "Y" Then               'Check for PN party requirement
+            
+                    loopCount = 7                                       'Set number of blanks rows to be filled
+                    noPNrequired = False                                'No change to FDA programing and processing codes
+        
+                Else                                                    'Item is not PNS
+            
+                    If .Range("O" & rowCount) = "DEV" Then               'Check for DEV DII party requirement
+                
+                        loopCount = 4                                   'Set number of blanks rows to be filled
+            
+                    Else                                                'DII party not required
+                
+                        loopCount = 3                                   'Set number of blanks rows to be filled
+            
+                    End If
+            
+                    noPNrequired = True                                 'FDA programing and processing codes to be changed
+        
+                End If
+    
+                copyCount = rowCount - loopCount                            'Finds first row of part with missing fields
+     
+                For j = 0 To loopCount - 1                                  'Starting from top blank row and work down, Adjust loop counter for 0 start
+        
+                    cellValue = .Range("A" & rowCount).Value2                 'Copy Master Parts Number to blank cell
+                    .Range("A" & copyCount + j).Value2 = cellValue
+            
+                    .Range("B" & copyCount + j).Value2 = Format(Date, "mm/dd/yyyy")      'Fill in part effective date to blank cell
+                    .Range("C" & copyCount + j).Value2 = "12/31/2099"                    'Fill in part expiration date to blank cell
+            
+                    cellValue = .Range("D" & rowCount).Value2                 'Copy Part Number to blank cell
+                    .Range("D" & copyCount + j).Value2 = cellValue
+       
+                    cellValue = .Range("K" & rowCount).Value2                 'Copy Pg Code to blank cell
+                    .Range("K" & copyCount + j).Value2 = cellValue
+       
+                    .Range("L" & copyCount + j).Value2 = 1
+            
+                    cellValue = .Range("N" & rowCount).Value2                 'Copy Pg Agency Code to blank cell
+                    .Range("N" & copyCount + j).Value2 = cellValue
+            
+                    cellValue = .Range("O" & rowCount).Value2                 'Copy Pg Program Code to blank cell
+                    .Range("O" & copyCount + j).Value2 = cellValue
+       
+                    cellValue = .Range("P" & rowCount).Value2                 'Copy Pg Agency Processing Cd to blank cell
+                    .Range("P" & copyCount + j).Value2 = cellValue
+            
+                    cellValue = .Range("Q" & rowCount).Value2                 'Copy Is Disclaimer to blank cell
+                    .Range("Q" & copyCount + j).Value2 = cellValue
+            
+                    cellValue = .Range("S" & rowCount).Value2                 'Copy FDA Pg Cd to blank cell
+                    .Range("S" & copyCount + j).Value2 = cellValue
+            
+                    .Range("T" & copyCount + j).Value2 = 1
+            
+                Next j
+        
+        
+                If .Range("P" & rowCount) = "PRO" Or .Range("P" & rowCount) = "FEE" Then
+                
+                    .Range("AK" & rowCount - 1) = 2
+                    .Range("AL" & rowCount - 1) = "CSH"
+                
+                    If Not IsEmpty(.Range("AU" & copyCount + 1)) Then
+    
+                        .Range("AM" & rowCount - 1) = .Range("AU" & copyCount + 1).Value2
+                    
+                    Else
+                    
+                        .Range("AM" & rowCount - 1) = "CA"
+    
+                    End If
+        
+                End If
+        
+            Else
+                loopCount = 0
+            End If
+        End With
+        rowCount = rowCount - loopCount - 1                                                     'Adjust rowCount for next part or loop end
+End Sub
+
+
+Private Sub WriteBasicPartsUploadTemplate(ByVal accountNumber As String)
+    
+    Dim endOfTemplate As Long
+    Dim endOfList As Long
+    Dim rowLocation As Long
+    Dim pgCode As String
+    Dim tempArray() As Variant
+    
+    InitializeTemplate "BasicPartsUploadTemplate"
+    endOfTemplate = FindLastRow("BasicPartsUploadTemplate") + 1
+    
+    LoadTempArray "BasicPartsList", tempArray()
+    endOfList = FindLastRow("BasicPartsList")
+    
+    For i = 1 To endOfList - 3
+    
+        With Worksheets("BasicPartsUploadTemplate")
+        
+            pgCode = GetFDACode(tempArray(i, 6), False)
+            Select Case pgCode
+            Case "FD1", "FD3"
+                WriteFDATemplate accountNumber, pgCode, tempArray(), i, True
+            Case Else
+                UploadTemplateStart "BasicPartsUploadTemplate", accountNumber, tempArray(), i
+            End Select
+            
+        End With
+    Next i
+End Sub
+
+Private Sub WriteGenericPartsList(ByVal tempList As String, ByRef tempArray() As Variant, ByVal location As Long)
+    
+    Dim rowCount As Long
+    
+    InitializeTemplate tempList
+    
+    rowCount = FindLastRow(tempList) + 1
+    
+    With Worksheets(tempList)
+        .Range("A" & rowCount & ": J" & location).NumberFormat = "@"
+        .Range("A" & rowCount) = tempArray(location, 1)          'Set Part Number
+        .Range("B" & rowCount) = tempArray(location, 2)          'Set Assembler
+        .Range("C" & rowCount) = tempArray(location, 3)          'Set Part Description
+        .Range("D" & rowCount) = tempArray(location, 4)          'Set MID
+        .Range("E" & rowCount) = tempArray(location, 5)          'Set Country of Origin
+        .Range("F" & rowCount) = tempArray(location, 6)          'Set HTS number
+        .Range("G" & rowCount) = tempArray(location, 7)          'Set SPI
+        Select Case tempList
+        Case "AQPartsList"
+            .Range("H" & rowCount) = GetAQCode(tempArray(location, 6))
+        Case "ALPartsList"
+            .Range("H" & rowCount) = GetALCode(tempArray(location, 6))
+        
+        End Select
+    End With
+
+End Sub
+
+Private Sub UploadTemplateStart(ByVal tempUploadList As String, ByVal accountNumber As String, ByRef tempArray() As Variant, ByVal location As Integer)
+
+    Dim copyRange As String
+    
+    Dim rowCount As Long
+    rowCount = FindLastRow(tempUploadList) + 1
+    
+    With Worksheets(tempUploadList)
+        
+        .Range("A" & rowCount & ":AM" & rowCount).NumberFormat = "@"
+        .Range("A" & rowCount) = accountNumber                              'Set account number
+        .Range("B" & rowCount) = Format(Date, "mm/dd/yyyy")
+        .Range("C" & rowCount) = "12/31/2099"
+        .Range("D" & rowCount) = tempArray(location, 1)                     'Set Part Number
+        .Range("E" & rowCount) = tempArray(location, 2)                     'Set Assembler
+        .Range("F" & rowCount) = tempArray(location, 3)                     'Set Part Description
+        .Range("G" & rowCount) = tempArray(location, 4)                     'Set MID
+        .Range("H" & rowCount) = tempArray(location, 5)                     'Set Country of Origin
+        .Range("I" & rowCount) = tempArray(location, 6)                     'Set HTS number
+        .Range("J" & rowCount) = tempArray(location, 7)                     'Set SPI Code
+    
+    End With
+
+End Sub
+
+Private Sub CompletePartiesTemplate()
+
+    Dim cw As Worksheet
+    Dim pt As Worksheet
+    Dim pasteLocation As Integer
+    
+    Set cw = Worksheets("ControlWindow")
+    Set pt = Worksheets("PartiesTemplate")
+    pasteLocation = 4
+    
+    For i = 30 To 44
+    
+        cw.Range("C" & i).Copy
+        pt.Range("C" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("F" & i).Copy
+        pt.Range("D" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("I" & i).Copy
+        pt.Range("E" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("L" & i).Copy
+        pt.Range("F" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("N" & i).Copy
+        pt.Range("G" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("O" & i).Copy
+        pt.Range("H" & pasteLocation).PasteSpecial xlPasteValues
+        cw.Range("P" & i).Copy
+        pt.Range("I" & pasteLocation).PasteSpecial xlPasteValues
+        Select Case i
+        Case 34, 38, 40, 42
+            cw.Range("Q" & i).Copy
+            pt.Range("L" & pasteLocation).PasteSpecial xlPasteValues
+            cw.Range("S" & i).Copy
+            pt.Range("M" & pasteLocation).PasteSpecial xlPasteValues
+            cw.Range("U" & i).Copy
+            pt.Range("N" & pasteLocation).PasteSpecial xlPasteValues
+        End Select
+        
+        i = i + 1
+        PlusOne pasteLocation, 0
+    Next i
+    
+    If Not cw.Range("M22") = "" Then
+        cw.Range("M22").Copy
+        pt.Range("K8").PasteSpecial xlPasteValues
+        pt.Range("J8").Value2 = 16
+    End If
+    
+    If Not cw.Range("M24") = "" Then
+        cw.Range("M24").Copy
+        pt.Range("K5").PasteSpecial xlPasteValues
+        pt.Range("J5").Value2 = 47
+    End If
+    
+End Sub
+
+Private Sub ImportData()
+
+    Dim cw As Worksheet
+    Dim pl As Worksheet
+    Dim importSheet As Worksheet
+    Dim importSheetName As String
+    Dim partsListName As String
+    Dim pasteRange As String
+    Dim copyRange As String
+    Dim aocCodeType As Variant
+    Dim aocPasteRange As String
+    Dim endOfImportSheet As Long
+    Dim endOfPartsList As Long
+    Dim tempEndofPartsList As Long
+    Dim headerRow As Integer
+    Dim partType As Integer
+
+    Set cw = Worksheets("ControlWindow")
+    importSheetName = cw.Range("T4").Value2
+    headerRow = cw.Range("T6") + 1
+    
+    Set importSheet = Worksheets(importSheetName)
+    endOfImportSheet = FindLastRow(importSheet.Name)
+    
+ResumeImport:
+    If cw.Range("H11").Value2 = "" And cw.Range("B17").Value2 = "" And cw.Range("O17").Value2 = "" Then
+        partType = 6
+        partsListName = "BasicPartsList"
+    ElseIf cw.Range("B17").Value2 = "" And cw.Range("O17").Value2 = "" Then
+        partType = 18
+        partsListName = "FDAPartsList"
+    ElseIf cw.Range("O17").Value2 = "" Then
+        ALSorting
+        GoTo ResumeImport
+    Else
+        AQSorting
+        GoTo ResumeImport
+    End If
+    
+    InitializeTemplate partsListName
+    
+    Set pl = Worksheets(partsListName)
+    endOfPartsList = FindLastRow(pl.Name) + 1
+    
+    With importSheet
+        
+        For i = 1 To partType
+            
+            Select Case i
+            Case 1                          'Part Number
+                pasteRange = "A"
+                copyRange = "B"
+            Case 2                          'Description
+                pasteRange = "C"
+                copyRange = "C"
+            Case 3                          'Shipper/Textile MID
+                pasteRange = "D"
+                copyRange = "D"
+            Case 4                          'Country of Origin
+                pasteRange = "E"
+                copyRange = "E"
+            Case 5                          'HTS Number
+                pasteRange = "F"
+                copyRange = "F"
+            Case 6                          'SPI indicatior
+                pasteRange = "G"
+                copyRange = "G"
+            Case 7                          'FDA Product code
+                pasteRange = "J"
+                copyRange = "H"
+            Case 8                          'DEV/PFR
+                pasteRange = "AG"
+                copyRange = "I"
+            Case 9                          'AOC 1
+                pasteRange = "AI"
+                copyRange = "J"
+                aocPasteRange = "AH"
+            Case 10                         'AOC 2
+                pasteRange = "AK"
+                copyRange = "K"
+                aocPasteRange = "AJ"
+            Case 11                         'AOC 3
+                pasteRange = "AM"
+                copyRange = "L"
+                aocPasteRange = "AL"
+            Case 12                         'MFG Name
+                pasteRange = "Z"
+                copyRange = "M"
+            Case 13                         'MFG Address 1
+                pasteRange = "AA"
+                copyRange = "N"
+            Case 14                         'MF Address 2
+                pasteRange = "AB"
+                copyRange = "O"
+            Case 15                         'MF City
+                pasteRange = "AC"
+                copyRange = "P"
+            Case 16                         'MF State
+                pasteRange = "AD"
+                copyRange = "Q"
+            Case 17                         'MF Country
+                pasteRange = "AE"
+                copyRange = "R"
+            Case 18                         'MF Zip
+                pasteRange = "AF"
+                copyRange = "S"
+            End Select
+            
+            If Not cw.Range(copyRange & 11) = "" Then
+                
+                .Range(UCase(cw.Range(copyRange & 11).Value2) & headerRow & ":" & UCase(cw.Range(copyRange & 11).Value2) & endOfImportSheet).Copy
+                pl.Paste Destination:=pl.Range(pasteRange & endOfPartsList)
+                
+                Select Case i
+                Case 9, 10, 11
+                    
+                    aocCodeType = InputBox("Enter AOC code " & i - 8 & " type : ")
+                    tempEndofPartsList = FindLastRow(pl.Name)
+                    
+                    For x = 4 To tempEndofPartsList
+                        If Not pl.Range(pasteRange & x).Value2 = "" Then
+                            pl.Range(aocPasteRange & x) = aocCodeType
+                        End If
+                    Next x
+                
+                End Select
+            
+            End If
+            
+        Next i
+        
+        If partType = 18 Then
+        
+            endOfPartsList = FindLastRow(pl.Name)
+            pl.Range("A4:AM" & endOfPartsList).Sort Key1:=pl.Range("J4"), Order1:=xlDescending, Header:=xlNo
+            
+            For i = 4 To endOfPartsList
+            
+                If pl.Range("J" & i).Value2 = "" Then
+                    
+                    Dim bpl As Worksheet
+                    
+                    InitializeTemplate "BasicPartsList"
+                    Set bpl = Worksheets("BasicPartsList")
+                    
+                    pl.Range("A" & i & ":G" & endOfPartsList).Cut
+                    i = endOfPartsList
+                    endOfPartsList = FindLastRow(bpl.Name) + 1
+                    bpl.Paste Destination:=bpl.Range("A" & endOfPartsList & ":G" & endOfPartsList)
+                
+                End If
+            
+            Next i
+            
+            pl.Range("L4:M" & FindLastRow(pl.Name)).NumberFormat = "@"
+            
+        End If
+    
+    End With
+
+End Sub
+
+Private Sub ALSorting()
+
+End Sub
+
+Private Sub AQSorting()
+
+    Dim cw As Worksheet
+    Dim aq As Worksheet
+    Dim importSheet As Worksheet
+    Dim importSheetName As String
+    Dim pasteRange As String
+    Dim copyRange As String
+    Dim endOfImportSheet As Long
+    Dim endOfAQPartsList As Long
+    Dim headerRow As Integer
+    
+    
+    Set cw = Worksheets("ControlWindow")
+    headerRow = cw.Range("T6") + 1
+    importSheetName = cw.Range("T4")
+    Set tl = Worksheets(importSheetName)
+    
+    InitializeTemplate "AQPartsList"
+    Set aq = Worksheets("AQPartsList")
+    endOfAQPartsList = FindLastRow(aq.Name) + 1
+    endOfImportSheet = FindLastRow(tl.Name)
+    
+    With importSheet
+    
+        For i = 1 To 9
+            
+            Select Case i
+            Case 1                          'Part Number
+                pasteRange = "A"
+                copyRange = "B11"
+            Case 2                          'Description
+                pasteRange = "C"
+                copyRange = "C11"
+            Case 3                          'Shipper/Textile MID
+                pasteRange = "D"
+                copyRange = "D11"
+            Case 4                          'Country of Origin
+                pasteRange = "E"
+                copyRange = "E11"
+            Case 5                          'HTS Number
+                pasteRange = "F"
+                copyRange = "F11"
+            Case 6                          'SPI indicatior
+                pasteRange = "G"
+                copyRange = "G11"
+            Case 7                          'Scientific Genus
+                pasteRange = "AD"
+                copyRange = "O17"
+            Case 8                          'Scientific Spiecies
+                pasteRange = "AE"
+                copyRange = "P17"
+            Case 9                          'Common Name
+                pasteRange = "AG"
+                copyRange = "Q17"
+            End Select
+        
+        
+        
+            If Not cw.Range(copyRange) = "" Then
+                tl.Range(UCase(cw.Range(copyRange).Value2) & headerRow & ":" & UCase(cw.Range(copyRange).Value2) & endOfImportSheet).Copy
+                aq.Paste Destination:=aq.Range(pasteRange & endOfAQPartsList)
+            End If
+        
+        Next i
+    
+    End With
+    
+    'Sort list by Genus and delete any line without one.
+    endOfAQPartsList = FindLastRow(aq.Name)
+    aq.Range("A4:AN" & endOfAQPartsList).Sort Key1:=aq.Range("AD4"), Order1:=xlDescending, Header:=xlNo
+            
+    For i = 4 To endOfAQPartsList
+            
+        If aq.Range("AD" & i).Value2 = "" Then
+                    
+            aq.Range("A" & i & ":AN" & endOfAQPartsList).Clear
+            i = endOfAQPartsList
+                
+        Else
+            aq.Range("J" & i) = GetAQCode(aq.Range("F" & i).Value2)
+        End If
+            
+    Next i
+
+    cw.Unprotect Password:="MDC"
+    cw.Range("O17") = ""
+    cw.Range("P17") = ""
+    cw.Range("Q17") = ""
+    cw.Protect Password:="MDC"
+    
+End Sub
+
+Private Sub CreatePartsList(ByVal tempList As String)
+    
+    If Not CheckSheetExists(tempList) Then
+        Exit Sub
+    End If
+    
+    Dim rowCount As Long
+    Dim forceFDA As Boolean
+    Dim tempArray() As Variant
+    
+    
+    rowCount = FindLastRow(tempList)
+    LoadTempArray tempList, tempArray()
+    
+    Select Case tempList
+    Case "BasicPartsList"
+        Application.DisplayAlerts = False
+        Worksheets("BasicPartsList").Delete
+        Application.DisplayAlerts = True
+        forceFDA = False
+    Case "FDAPartsList"
+        forceFDA = True
+    End Select
+    
+    For i = 1 To rowCount - 3
+    
+        CheckPGA tempArray(), i, forceFDA
+    
+    Next i
+
+
+End Sub
+
+Private Sub CheckPGA(ByRef tempArray() As Variant, ByVal tempLocation As Long, ByVal isForcedFDA As Boolean)
+    
+    Dim searchResult As Range
+    Dim endOfHTS As Long
+    Dim pgaString As String
+
+    Dim itemProcessed As Boolean
+        
+    pgaString = ""
+    itemProcessed = False
+    
+    endOfHTS = FindLastRow("CurrentHTSList")
+    
+    With Worksheets("CurrentHTSList").Range("A1:A" & endOfHTS)
+        Set searchResult = .Find(tempArray(tempLocation, 6), LookIn:=xlValues, LookAt:=xlWhole)
+        pgaString = .Range("P" & searchResult.Row)
+    End With
+    
+    While Len(pgaString) > 0
+        Select Case Right(pgaString, 3)
+            Case "AL1", "AL2"
+            'Check to see if it already exists on ALPartsList if so item processing not necessary.
+                If CheckSheetExists("ALPartsList") Then
+                    With Worksheets("ALPartsList").Range("A4:A" & FindLastRow("ALPartsList"))
+                        Set searchResult = .Find(tempArray(tempLocation, 1), LookIn:=xlValues, LookAt:=xlWhole)
+                        If searchResult Is Nothing Then
+                            listName = "ALPartsList"
+                        Else
+                            listName = ""
+                        End If
+                    End With
+                Else
+                    listName = "ALPartsList"
+                End If
+                itemProcessed = True
+            Case "AQ1", "AQ2"
+            'Check to see if it already exists on AQPartsList if so item processing not necessary.
+                If CheckSheetExists("AQPartsList") Then
+                    With Worksheets("AQPartsList").Range("A4:A" & FindLastRow("AQPartsList"))
+                        Set searchResult = .Find(tempArray(tempLocation, 1), LookIn:=xlValues, LookAt:=xlWhole)
+                        If searchResult Is Nothing Then
+                            listName = "AQPartsList"
+                        Else
+                            listName = ""
+                        End If
+                    End With
+                Else
+                    listName = "AQPartsList"
+                End If
+                itemProcessed = True
+            Case "EP3"
+                listName = "EP3PartsList"
+                itemProcessed = True
+            Case "EP5"
+                listName = "EP5PartsList"
+                itemProcessed = True
+            Case "EP7"
+                listName = "EP7PartsList"
+                itemProcessed = True
+            Case "FD1", "FD3"
+                If Not isForcedFDA Then
+                    listName = "BasicPartsList"
+                Else
+                    listName = ""
+                End If
+                itemProcessed = True
+                Case "FD2", "FD4"
+                If Not isForcedFDA Then
+                    listName = "FDAPartsList"
+                Else
+                    listName = ""
+                End If
+                itemProcessed = True
+                Case Else
+                listName = ""
+        End Select
+        
+        If itemProcessed And Not listName = "" Then
+            WriteGenericPartsList listName, tempArray(), tempLocation
+        End If
+        
+        pgaString = Left(pgaString, Len(pgaString) - 3)
+     
+     Wend
+     
+    If Not itemProcessed And Not isForcedFDA Then
+        WriteGenericPartsList "BasicPartsList", tempArray(), tempLocation
+    End If
+    
+
+End Sub
+
+Private Function GetALCode(ByVal tempHTSNumber As String)
+
+    Dim searchResult As Range
+    Dim pgaString As String
+    
+    GetALCode = ""
+    
+    With Worksheets("CurrentHTSList").Range("A1:A" & FindLastRow("CurrentHTSList"))
+        Set searchResult = .Find(tempHTSNumber, LookIn:=xlValues, LookAt:=xlWhole)
+        pgaString = .Range("P" & searchResult.Row).Value2
+        While Len(pgaString) > 0
+            Select Case Left(pgaString, 3)
+            Case "AL1", "AL2"
+                GetALCode = Left(pgaString, 3)
+                Exit Function
+            End Select
+            pgaString = Right(pgaString, Len(pgaString) - 3)
+        Wend
+        
+    End With
+
+End Function
+
+Private Function GetAQCode(ByVal tempHTSNumber As String)
+
+    Dim searchResult As Range
+    Dim pgaString As String
+    
+    GetAQCode = ""
+    
+    With Worksheets("CurrentHTSList").Range("A1:A" & FindLastRow("CurrentHTSList"))
+        Set searchResult = .Find(tempHTSNumber, LookIn:=xlValues, LookAt:=xlWhole)
+        pgaString = .Range("P" & searchResult.Row).Value2
+        While Len(pgaString) > 0
+            Select Case Left(pgaString, 3)
+            Case "AQ1", "AQ2"
+                GetAQCode = Left(pgaString, 3)
+                Exit Function
+            End Select
+            pgaString = Right(pgaString, Len(pgaString) - 3)
+        Wend
+        
+    End With
+
+End Function
+Private Function GetDTCode(ByVal tempHTSNumber As String)
+
+    Dim searchResult As Range
+    Dim pgaString As String
+    
+    GetDTCode = ""
+    
+    With Worksheets("CurrentHTSList").Range("A1:A" & FindLastRow("CurrentHTSList"))
+        Set searchResult = .Find(tempHTSNumber, LookIn:=xlValues, LookAt:=xlWhole)
+        pgaString = .Range("P" & searchResult.Row).Value2
+        While Len(pgaString) > 0
+            Select Case Left(pgaString, 3)
+            Case "DT1", "DT2"
+                GetDTCode = Left(pgaString, 3)
+                Exit Function
+            End Select
+            pgaString = Right(pgaString, Len(pgaString) - 3)
+        Wend
+        
+    End With
+
+End Function
+
+
+Private Function GetFDACode(ByVal tempHTSNumber As String, ByVal forcedFDA As Boolean) As String
+    
+    Dim searchResult As Range
+    Dim pgaString As String
+    
+    GetFDACode = ""
+    
+    With Worksheets("CurrentHTSList").Range("A1:A" & FindLastRow("CurrentHTSList"))
+        Set searchResult = .Find(tempHTSNumber, LookIn:=xlValues, LookAt:=xlWhole)
+        pgaString = .Range("P" & searchResult.Row).Value2
+        While Len(pgaString) > 0
+            Select Case Right(pgaString, 3)
+            Case "FD1", "FD2", "FD3", "FD4"
+                GetFDACode = Right(pgaString, 3)
+                Exit Function
+            End Select
+            pgaString = Left(pgaString, Len(pgaString) - 3)
+        Wend
+        
+    End With
+    
+    If forcedFDA Then
+        GetFDACode = "FD1"
+    End If
+    
+End Function
+
+Private Sub ClearControlWindow()
+    
+    Dim cw As Worksheet
+    Dim pt As Worksheet
+    Dim rng As Range
+    Dim cel As Range
+    
+    Workbooks("PartUploadTemplate").Activate
+    
+    Set cw = Worksheets("ControlWindow")
+    Set pt = Worksheets("PartiesTemplate")
+    
+    cw.Activate
+    cw.Unprotect Password:="MDC"
+    cw.Range("T4") = ""
+    cw.Range("T6") = 0
+    cw.Range("M22") = ""
+    cw.Range("M24") = ""
+    cw.Range("M26") = ""
+    cw.Range("Q26") = ""
+    cw.Range("S26") = ""
+    cw.Range("U26") = ""
+    
+    Set rng = cw.Range("B11:S11")
+    For Each cel In rng.Cells
+        With cel
+            .Value2 = ""
+        End With
+    Next cel
+    
+    Set rng = cw.Range("B17:Q17")
+    For Each cel In rng.Cells
+        With cel
+            .Value2 = ""
+        End With
+    Next cel
+
+    For i = 30 To 44
+        cw.Range("C" & i) = ""
+        cw.Range("F" & i) = ""
+        cw.Range("I" & i) = ""
+        cw.Range("L" & i) = ""
+        cw.Range("N" & i) = ""
+        cw.Range("O" & i) = ""
+        cw.Range("P" & i) = ""
+        Select Case i
+        Case 34, 38, 40, 42
+            cw.Range("Q" & i) = ""
+            cw.Range("S" & i) = ""
+            cw.Range("U" & i) = ""
+        End Select
+        i = i + 1
+    Next i
+    
+    For i = 4 To 10
+        
+        pt.Range("C" & i).Value2 = ""
+        pt.Range("D" & i).Value2 = ""
+        pt.Range("E" & i).Value2 = ""
+        pt.Range("F" & i).Value2 = ""
+        pt.Range("G" & i).Value2 = ""
+        pt.Range("H" & i).Value2 = ""
+        pt.Range("I" & i).Value2 = ""
+        pt.Range("J" & i).Value2 = ""
+        pt.Range("K" & i).Value2 = ""
+        pt.Range("L" & i).Value2 = ""
+        pt.Range("M" & i).Value2 = ""
+        pt.Range("N" & i).Value2 = ""
+        
+    Next i
+    cw.Protect Password:="MDC"
+
+End Sub
+
+Private Function CheckSheetExists(ByVal searchSheetName As String) As Boolean
+
+    Dim sheet As Worksheet
+    CheckSheetExists = False
+    
+    For Each sheet In Workbooks("PartUploadTemplate").Worksheets
+        If sheet.Name = searchSheetName Then
+            CheckSheetExists = True
+            Exit Function
+        End If
+    Next sheet
+    
+End Function
+
+Private Sub InitializeTemplate(ByVal tempList As String)
+        
+        If CheckSheetExists(tempList) Then
+            Exit Sub
+        End If
+        
+        Dim copyHeader As Variant
+        Dim copyRange As String
+        Dim pasteRange As String
+                   
+        Sheets.Add.Name = tempList
+
+        Select Case tempList
+        Case "BasicPartsList"
+            copyRange = "A55:G57"
+            pasteRange = "A1:G3"
+        Case "ALPartsList"
+            copyRange = "A79:Q81"
+            pasteRange = "A1:Q3"
+        Case "AQPartsList"
+            copyRange = "A67:AO69"
+            pasteRange = "A1:AO3"
+        Case "FDAPartsList"
+            copyRange = "A61:AM63"
+            pasteRange = "A1:AM3"
+        Case "EP3PartsList", "EP5PartsList"
+            copyRange = "A25:I27"
+            pasteRange = "A1:I3"
+        Case "EP7PartsList"
+            copyRange = "A31:J33"
+            pasteRange = "A1:J3"
+        Case "BasicPartsUploadTemplate"
+            copyRange = "A49:J51"
+            pasteRange = "A1:J3"
+        Case "FDAUploadTemplate"
+            copyRange = "A49:BD51"
+            pasteRange = "A1:BD3"
+        Case "EP7UploadTemplate"
+            copyRange = "A37:Z39"
+            pasteRange = "A1:Z3"
+        Case "EP5UploadTemplate"
+            copyRange = "A43:Q45"
+            pasteRange = "A1:Q3"
+        Case "EP3UploadTemplate"
+            copyRange = "A43:Q45"
+            pasteRange = "A1:Q3"
+        Case "AQUploadTemplate"
+            copyRange = "A73:BS75"
+            pasteRange = "A1:BSR3"
+        Case "ALUploadTemplate"
+            copyRange = "A85:AC87"
+            pasteRange = "A1:AC3"
+        End Select
+        
+        Worksheets("PartiesTemplate").Range(copyRange).Copy
+        Worksheets(tempList).Paste Destination:=Worksheets(tempList).Range(pasteRange)
+        Worksheets(tempList).Columns.AutoFit
+        
+End Sub
+
+Private Sub FinalizeUploadTemplate(ByVal tempUploadTemplate As String)
+    
+    Select Case tempUploadTemplate
+    Case "FDAUploadTemplate"
+        AutoInsertFDALines
+    End Select
+    
+    InsertEOF tempUploadTemplate
+    Workbooks("PartUploadTemplate").Sheets(tempUploadTemplate).Move
+    Workbooks("PartUploadTemplate").Activate
+
+End Sub
+
+Private Function ValidateHTS(ByVal tempList As String, ByVal htsRowLocation As String, ByVal headerRow As Integer)
+'
+'Validates HTS numbers in a parts list
+'
+
+'Add Sort by HTS list for faster processing.
+
+
+    Dim tl As Worksheet
+    Dim rowCount As Long
+    Dim endOfHTS As Long
+    Dim temp As String
+    Dim htsNumber As String
+    Dim search As Range
+    Dim pass As Boolean
+    
+    ValidateHTS = True
+    rowCount = FindLastRow(tempList)                        'Find last part in list
+
+    If rowCount = headerRow Then
+        ValidateHTS = False
+        Exit Function
+    End If
+    
+    Set tl = Worksheets(tempList)
+    endOfHTS = FindLastRow("CurrentHTSList")
+    
+    For i = headerRow + 1 To rowCount
+        
+        htsNumber = tl.Range(htsRowLocation & i)
+    
+        If Len(htsNumber) = 10 And IsNumeric(htsNumber) Then
+            htsNumber = Left(htsNumber, 4) & "." & Right(htsNumber, 6)
+            tl.Range(htsRowLocation & i).Value2 = Left(htsNumber, 7) & "." & Right(htsNumber, 4)
+        End If
+        
+        If i > headerRow + 1 Then
+            If tl.Range(htsRowLocation & i) = temp Then
+                If Not pass Then
+                    tl.Range(htsRowLocation & i).Interior.Color = RGB(0, 255, 255)
+                End If
+                GoTo NextIteration
+            End If
+        End If
+     
+        temp = tl.Range(htsRowLocation & i)
+        With Worksheets("CurrentHTSList").Range("A1:A" & endOfHTS)
+            Set search = .Find(temp, LookIn:=xlValues, LookAt:=xlWhole)
+            If search Is Nothing Then
+                tl.Range(htsRowLocation & i).Interior.Color = RGB(0, 255, 255)
+                pass = False
+                ValidateHTS = False
+            Else
+                pass = True
+            End If
+            
+        End With
+NextIteration:
+    Next i
+
+End Function
+
+
+
+Private Sub LoadTempArray(ByVal tempList As String, ByRef tempArray() As Variant)
+     
+    Dim rowCount As Long
+    Dim arrayColumnCounter As Integer
+    Dim arrayRowCounter As Long
+    Dim aocPositionNumber As Integer
+    Dim stopCount As Integer
+    Dim pgCode As String
+    Dim tempRange As String
+    
+    Select Case tempList
+    Case "BasicPartsList"
+        tempRange = "A4:G"
+        stopCount = 7
+    Case "FDAPartsList"
+        tempRange = "A4:AM"
+        stopCount = 39
+    Case "EP7PartsList"
+        tempRange = "A4:J"
+        stopCount = 10
+    Case "EP5PartsList", "EP3PartsList"
+        tempRange = "A4:I"
+        stopCount = 9
+    Case "AQPartsList"
+        tempRange = "A4:AO"
+        stopCount = 41
+    Case "ALPartsList"
+        tempRange = "A4:Q"
+        stopCount = 17
+    End Select
+
+    
+    arrayRowCounter = 1
+    arrayColumnCounter = 1
+    
+    rowCount = FindLastRow(tempList)
+    
+    ReDim tempArray(rowCount, stopCount)
+    
+    For Each Row In Worksheets(tempList).Range(tempRange & rowCount)
+        
+        For Each Cell In Row
+            
+            tempArray(arrayRowCounter, arrayColumnCounter) = CStr(Cell.Value2)
+            PlusOne arrayColumnCounter, 0
+        
+        Next
+        
+        If arrayColumnCounter = stopCount + 1 Then
+            arrayColumnCounter = 1
+            PlusOne 0, arrayRowCounter
+        End If
+        
+    Next
+
+End Sub
+
+Private Function FindLastRow(ByVal searchSheet As String) As Long
+'
+'Returns last row of requested sheet
+'
+
+        FindLastRow = Worksheets(searchSheet).Cells(Rows.Count, 1).End(xlUp).Row
+    
+End Function
+
+Private Sub InsertEOF(ByVal searchSheet)
+
+    Dim insertEOFLocation As Long
+    
+    insertEOFLocation = FindLastRow(searchSheet) + 1
+
+    Worksheets(searchSheet).Range("A" & insertEOFLocation) = "EOF"
+
+End Sub
+
+Private Sub PlusOne(ByRef yy As Integer, ByRef zz As Long)
+'
+'Auto Add by one, ++ operator
+'
+    yy = yy + 1
+    zz = zz + 1
+
+End Sub
+
+Private Sub MinusOne(ByRef yy As Integer, ByRef zz As Long)
+'
+'Auto Subtract by one, -- operator
+'
+    yy = yy - 1
+    zz = zz - 1
+
+End Sub
+
+Private Sub CommandButton1_Click()
+
+    CommandButton1.Font.Bold = True
+    Application.ScreenUpdating = False
+    Dim cw As Worksheet
+    Set cw = Worksheets("ControlWindow")
+    
+    If cw.Range("T4").Value2 = "" Then
+        Exit Sub
+    End If
+    
+    If Not ValidateHTS(cw.Range("T4").Value2, cw.Range("F11").Value2, cw.Range("T6").Value2) Then
+        Worksheets(cw.Range("T4").Value2).Move
+        ClearControlWindow
+        MsgBox ("HTS Errors. Please review prior to import.")
+        Exit Sub
+    End If
+    Main 1
+    
+End Sub
+
+Private Sub CommandButton2_Click()
+    
+    CommandButton2.Font.Bold = True
+    Application.ScreenUpdating = False
+    Dim pt As Workbook
+    Set pt = Workbooks("PartUploadTemplate")
+    
+    For Each sheet In pt.Worksheets
+        Select Case sheet.Name
+        Case "FDAPartsList", "AQPartsList", "BasicPartsList", "EP7PartsList", "EP5PartsList", "EP3PartsList", "ALPartsList"
+            Main 2
+            Exit For
+        End Select
+    Next sheet
+    
+End Sub
+
+Private Sub CommandButton3_Click()
+
+    CommandButton3.Font.Bold = True
+    CommandButton3.Font.Size = 8
+    
+    If Worksheets("CurrentHTSList").Range("Q1") = "" Then
+        Dim ans As Integer
+        ans = MsgBox(Chr(34) & "CurrentHTSList by MDC" & Chr(34) & " Ad Hoc Report is required to continue. Press OK and drag worksheet from Ad Hoc CSV file into this workbook. Then press button again. Please press Cancel if Ad Hoc not available.", vbOKCancel, "WARNING")
+        If ans = vbOK Then
+            ans = MsgBox("Pressing Ok will delete CurrentHTSList loaded in Workbook.", vbOKCancel, "WARNING")
+            If ans = vbOK Then
+                Application.DisplayAlerts = False
+                Worksheets("CurrentHTSList").Delete
+                Application.DisplayAlerts = True
+            End If
+        End If
+    Else
+    
+        Application.ScreenUpdating = False
+
+        Dim endOfList As Long
+        Dim htsList As Worksheet
+    
+        Set hL = Worksheets("CurrentHTSList")
+    
+        endOfList = FindLastRow(hL.Name)
+        
+        hL.Activate
+        hL.Range("A2:Q" & endOfList).Select
+        Selection.Sort Key1:=hL.Range("A2"), Order1:=xlAscending, Header:=xlNo
+    
+        For x = 2 To endOfList
+            If hL.Range("Q" & x).Value2 = "N" Then
+                hL.Range("P" & x).Value2 = ""
+            End If
+        Next x
+
+        hL.Range("Q:Q").Delete
+
+        For i = 2 To endOfList
+            If Not IsEmpty(hL.Range("A" & i).Value2) Then
+CheckAgain:
+                If hL.Range("A" & i).Value2 = hL.Range("A" & i + 1).Value2 Then
+                    hL.Range("P" & i + 1).Value2 = hL.Range("P" & i).Value2 & hL.Range("P" & i + 1).Value2
+                    hL.Rows(i).Select
+                    Selection.Delete xlUp
+                    GoTo CheckAgain
+                End If
+            Else
+                i = endOfList
+            End If
+        Next i
+        
+        hL.Visible = False
+        Worksheets("ControlWindow").Unprotect Password:="MDC"
+        Worksheets("ControlWindow").Range("A46").Value2 = "Required Maintenance : CurrentHTSList (Condensed MDC HTS LIST Ad Hoc Report) - Last Update " & Date
+        Worksheets("ControlWindow").Protect Password:="MDC"
+        Application.ScreenUpdating = True
+    
+    End If
+End Sub
